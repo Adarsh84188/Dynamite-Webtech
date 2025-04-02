@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .project-form, .task-form {
+            margin-bottom: 30px;
+        }
+
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        input[type="text"], input[type="date"], textarea {
+            width: 100%;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .project-list, .task-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .project-item, .task-item {
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-progress {
+            display: flex;
+            align-items: center;
+        }
+
+        .task-progress input {
+            width: 60%;
+        }
+
+        .task-progress button {
+            width: 30%;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .not-started {
+            background-color: #f0ad4e;
+            color: white;
+        }
+
+        .in-progress {
+            background-color: #5bc0de;
+            color: white;
+        }
+
+        .completed {
+            background-color: #5cb85c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Project Management Tool</h1>
+
+        <!-- Project Form -->
+        <div class="project-form">
+            <h2>Create New Project</h2>
+            <input type="text" id="project-name" placeholder="Enter project name" required>
+            <button onclick="createProject()">Create Project</button>
+        </div>
+
+        <div class="project-list" id="project-list"></div>
+
+        <!-- Task Form -->
+        <div class="task-form" id="task-form" style="display: none;">
+            <h2>Add Task to Project</h2>
+            <input type="text" id="task-name" placeholder="Enter task name" required>
+            <input type="date" id="task-deadline" required>
+            <button onclick="addTask()">Add Task</button>
+        </div>
+
+        <div class="task-list" id="task-list"></div>
+    </div>
+
+    <script>
+        // Arrays to hold projects and tasks
+        let projects = [];
+        let tasks = [];
+
+        function createProject() {
+            const projectName = document.getElementById("project-name").value.trim();
+            if (projectName !== "") {
+                const project = {
+                    id: new Date().getTime(),
+                    name: projectName,
+                    tasks: []
+                };
+                projects.push(project);
+                renderProjects();
+                document.getElementById("project-name").value = ""; // Clear input
+            }
+        }
+
+        function renderProjects() {
+            const projectList = document.getElementById("project-list");
+            projectList.innerHTML = "";
+            projects.forEach(project => {
+                const projectItem = document.createElement("div");
+                projectItem.className = "project-item";
+                projectItem.innerHTML = `
+                    <h3>${project.name}</h3>
+                    <button onclick="showTaskForm(${project.id})">Add Task</button>
+                    <ul id="tasks-for-${project.id}" class="task-list"></ul>
+                `;
+                projectList.appendChild(projectItem);
+            });
+        }
+
+        function showTaskForm(projectId) {
+            document.getElementById("task-form").style.display = "block";
+            document.getElementById("task-form").setAttribute("data-project-id", projectId);
+        }
+
+        function addTask() {
+            const projectId = document.getElementById("task-form").getAttribute("data-project-id");
+            const taskName = document.getElementById("task-name").value.trim();
+            const taskDeadline = document.getElementById("task-deadline").value;
+
+            if (taskName !== "" && taskDeadline !== "") {
+                const task = {
+                    id: new Date().getTime(),
+                    projectId: projectId,
+                    name: taskName,
+                    deadline: taskDeadline,
+                    progress: 0,
+                    status: "not-started"
+                };
+
+                tasks.push(task);
+                const project = projects.find(p => p.id == projectId);
+                project.tasks.push(task);
+                renderTasks(projectId);
+                document.getElementById("task-name").value = ""; // Clear input
+                document.getElementById("task-deadline").value = ""; // Clear input
+            }
+        }
+
+        function renderTasks(projectId) {
+            const taskList = document.getElementById(`tasks-for-${projectId}`);
+            const projectTasks = tasks.filter(task => task.projectId == projectId);
+
+            taskList.innerHTML = "";
+            projectTasks.forEach(task => {
+                const taskItem = document.createElement("li");
+                taskItem.className = "task-item";
+                taskItem.innerHTML = `
+                    <div>
+                        <h4>${task.name}</h4>
+                        <p>Deadline: ${task.deadline}</p>
+                    </div>
+                    <div class="task-progress">
+                        <input type="range" min="0" max="100" value="${task.progress}" onchange="updateProgress(${task.id}, this.value)">
+                        <button onclick="updateStatus(${task.id})">${task.status}</button>
+                    </div>
+                `;
+                taskList.appendChild(taskItem);
+            });
+        }
+
+        function updateProgress(taskId, progress) {
+            const task = tasks.find(t => t.id == taskId);
+            task.progress = progress;
+            if (progress === "100") {
+                task.status = "completed";
+            } else if (progress > "0") {
+                task.status = "in-progress";
+            } else {
+                task.status = "not-started";
+            }
+            renderProjects();
+        }
+
+        function updateStatus(taskId) {
+            const task = tasks.find(t => t.id == taskId);
+            task.status = task.status === "not-started" ? "in-progress" : task.status === "in-progress" ? "completed" : "not-started";
+            renderProjects();
+        }
+    </script>
+</body>
+</html>
